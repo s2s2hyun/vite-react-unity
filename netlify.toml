@@ -1,0 +1,5 @@
+[[headers]]
+  for = "/unity/Build/*.br"
+  [headers.values]
+    Content-Encoding = "br"
+    Content-Type = "application/octet-stream"
