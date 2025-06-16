@@ -1,4 +1,3 @@
-
 import { Unity, useUnityContext } from "react-unity-webgl";
 
 export default function Home() {
@@ -11,9 +10,9 @@ export default function Home() {
     sendMessage,
   } = useUnityContext({
     loaderUrl: "unity/Build/Build.loader.js",
-    dataUrl: "unity/Build/Build.data",
-    frameworkUrl: "unity/Build/Build.framework.js",
-    codeUrl: "unity/Build/Build.wasm",
+    dataUrl: "unity/Build/Build.data.br", // .br 추가 필요
+    frameworkUrl: "unity/Build/Build.framework.js.br", // 이미 맞음
+    codeUrl: "unity/Build/Build.wasm.br", // .br 추가 필요
   });
 
   function handleClickSpawnEnemies() {
