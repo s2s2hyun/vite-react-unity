@@ -1,14 +1,13 @@
-import React from "react";
-import UnityWebGL from "../../components/unity/UnityWebGL";
+
 import { Unity, useUnityContext } from "react-unity-webgl";
 
 export default function Home() {
   const {
     unityProvider,
     isLoaded,
-    loadingProgression,
-    addEventListener,
-    removeEventListener,
+    // loadingProgression,
+    // addEventListener,
+    // removeEventListener,
     sendMessage,
   } = useUnityContext({
     loaderUrl: "unity/Build/Build.loader.js",
