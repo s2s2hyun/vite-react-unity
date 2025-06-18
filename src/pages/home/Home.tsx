@@ -95,6 +95,7 @@ export default function Home() {
     canvas.height = targetHeight;
 
     // 비디오를 축소하여 그리기
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
     // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
