@@ -8,7 +8,7 @@ export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
-
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 768);
   const { unityProvider, isLoaded, sendMessage } = useUnityContext({
     loaderUrl: "unity/Build/Build.loader.js",
     dataUrl: "unity/Build/Build.data.br",
@@ -26,14 +26,30 @@ export default function Home() {
     requestPermission();
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth >= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // 초기 실행
+    handleResize();
+
+    // 정리 함수
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   async function requestCameraPermission() {
     try {
       // 해상도를 대폭 줄임 (메모리 절약)
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 1280 }, // HD 해상도
-          height: { ideal: 720 },
-          frameRate: { ideal: 20, max: 20 },
+          width: { ideal: isLargeScreen ? 1280 : 640 },
+          height: { ideal: isLargeScreen ? 720 : 480 },
+          frameRate: { ideal: 20, max: 20 }, // 프레임레이트 제한
           facingMode: "environment",
         },
         audio: false,
@@ -62,7 +78,7 @@ export default function Home() {
     const currentTime = Date.now();
 
     // 프레임 스킵 (10fps로 제한)
-    if (currentTime - lastFrameTimeRef.current < 66 ) return;
+    if (currentTime - lastFrameTimeRef.current < 100) return;
     lastFrameTimeRef.current = currentTime;
 
     const video = videoRef.current;
@@ -72,8 +88,8 @@ export default function Home() {
     if (!ctx) return;
 
     // 캔버스 크기를 더 작게 설정 (메모리 절약)
-    const targetWidth = 1280; // HD 해상도
-    const targetHeight = 720;
+    const targetWidth = isLargeScreen ? 1280 : 320;
+    const targetHeight = isLargeScreen ? 720 : 240;
 
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -82,7 +98,7 @@ export default function Home() {
     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
     // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
-    const imageData = canvas.toDataURL("image/jpeg", 0.8);
+    const imageData = canvas.toDataURL("image/jpeg", 1);
 
     // 프레임 카운터 (디버깅용)
     frameCountRef.current++;
