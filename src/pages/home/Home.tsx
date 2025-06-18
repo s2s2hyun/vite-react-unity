@@ -3,9 +3,9 @@ import { Unity, useUnityContext } from "react-unity-webgl";
 export default function Home() {
   const { unityProvider, isLoaded } = useUnityContext({
     loaderUrl: "/test/Build/Build.loader.js",
-    dataUrl: "/test/Build/Build.data.br",
-    frameworkUrl: "/test/Build/Build.framework.js.br",
-    codeUrl: "/test/Build/Build.wasm.br",
+    dataUrl: "/test/Build/Build.data",
+    frameworkUrl: "/test/Build/Build.framework.js",
+    codeUrl: "/test/Build/Build.wasm",
   });
 
   return (
@@ -50,7 +50,7 @@ export default function Home() {
       </style>
       <div className="unity-wrapper">
         {!isLoaded && (
-          <p className="loading-message">Unity 콘텐츠를 로딩 중...</p>
+          <p className="loading-message">Unity 콘텐츠를 로딩 중..123</p>
         )}
         <Unity
           unityProvider={unityProvider}
