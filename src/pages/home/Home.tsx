@@ -88,8 +88,8 @@ export default function Home() {
     if (!ctx) return;
 
     // 캔버스 크기를 더 작게 설정 (메모리 절약)
-    const targetWidth = isLargeScreen ? 1280 : 320;
-    const targetHeight = isLargeScreen ? 720 : 240;
+    const targetWidth = isLargeScreen ? 1280 : 640;
+    const targetHeight = isLargeScreen ? 720 : 480;
 
     canvas.width = targetWidth;
     canvas.height = targetHeight;
