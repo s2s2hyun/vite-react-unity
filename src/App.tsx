@@ -4,6 +4,7 @@ import "./App.css";
 import Home from "./pages/home/Home";
 import About from "./pages/about/About";
 import Layout from "./components/layout/Layout";
+import Test from "./pages/test/Test";
 
 function App() {
   // 모바일 viewport height 맞추기
@@ -16,6 +17,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/test" element={<Test />} />
         </Routes>
       </Layout>
     </Router>
