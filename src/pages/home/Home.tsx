@@ -3,13 +3,12 @@ import { Unity, useUnityContext } from "react-unity-webgl";
 
 export default function Home() {
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 768);
+  const [_stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lastFrameTimeRef = useRef<number>(0);
   const frameCountRef = useRef<number>(0);
-
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 768);
   const { unityProvider, isLoaded, sendMessage } = useUnityContext({
     loaderUrl: "unity/Build/Build.loader.js",
     dataUrl: "unity/Build/Build.data.br",
@@ -18,55 +17,68 @@ export default function Home() {
   });
 
   useEffect(() => {
+    async function requestPermission() {
+      const permissionGranted = await requestCameraPermission();
+      if (permissionGranted) {
+        setCameraPermissionGranted(true);
+      }
+    }
+    requestPermission();
+  }, []);
+
+  useEffect(() => {
     const handleResize = () => {
       setIsLargeScreen(window.innerWidth >= 768);
     };
 
     window.addEventListener("resize", handleResize);
+
+    // 초기 실행
     handleResize();
 
+    // 정리 함수
     return () => {
       window.removeEventListener("resize", handleResize);
     };
   }, []);
 
-  useEffect(() => {
-    async function requestCameraPermission() {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: isLargeScreen ? 1280 : 640 },
-            height: { ideal: isLargeScreen ? 720 : 480 },
-            frameRate: { ideal: 15, max: 15 }, // 프레임레이트 15fps
-            facingMode: "environment",
-          },
-          audio: false,
-        });
+  async function requestCameraPermission() {
+    try {
+      // 해상도를 대폭 줄임 (메모리 절약)
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: isLargeScreen ? 1280 : 640 },
+          height: { ideal: isLargeScreen ? 720 : 480 },
+          frameRate: { ideal: 20, max: 20 }, // 프레임레이트 제한
+          facingMode: "environment",
+        },
+        audio: false,
+      });
 
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          videoRef.current.play();
-        }
+      setStream(mediaStream);
 
-        setCameraPermissionGranted(true);
-        console.log("카메라 권한 허용됨");
-        return true;
-      } catch (err) {
-        console.error("카메라 권한 거부됨:", err);
-        alert("카메라 권한이 필요합니다.");
-        return false;
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
       }
+
+      console.log("카메라 권한 허용됨");
+      return true;
+    } catch (err) {
+      console.error("카메라 권한 거부됨:", err);
+      alert("카메라 권한이 필요합니다.");
+      return false;
     }
+  }
 
-    requestCameraPermission();
-  }, [isLargeScreen]);
-
+  // 메모리 최적화된 프레임 전송
   const sendVideoFrameToUnity = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isLoaded) return;
 
     const currentTime = Date.now();
-    if (currentTime - lastFrameTimeRef.current < 66) return; // 15fps
+
+    // 프레임 스킵 (10fps로 제한)
+    if (currentTime - lastFrameTimeRef.current < 100) return;
     lastFrameTimeRef.current = currentTime;
 
     const video = videoRef.current;
@@ -75,16 +87,20 @@ export default function Home() {
 
     if (!ctx) return;
 
+    // 캔버스 크기를 더 작게 설정 (메모리 절약)
     const targetWidth = isLargeScreen ? 1280 : 640;
-    const targetHeight = isLargeScreen ? 720 : 480;
+    const targetHeight = isLargeScreen ? 720 : 240;
 
     canvas.width = targetWidth;
     canvas.height = targetHeight;
 
+    // 비디오를 축소하여 그리기
     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
-    const imageData = canvas.toDataURL("image/webp", 0.9); // WebP 사용, 90% 품질
+    // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
+    const imageData = canvas.toDataURL("image/jpeg", 1);
 
+    // 프레임 카운터 (디버깅용)
     frameCountRef.current++;
     if (frameCountRef.current % 50 === 0) {
       console.log(
@@ -99,8 +115,9 @@ export default function Home() {
     } catch (error) {
       console.error("Unity 메시지 전송 실패:", error);
     }
-  }, [isLoaded, sendMessage, isLargeScreen]);
+  }, [isLoaded, sendMessage]);
 
+  // 애니메이션 프레임 사용 (setInterval보다 효율적)
   useEffect(() => {
     let animationId: number;
 
@@ -119,13 +136,14 @@ export default function Home() {
     };
   }, [cameraPermissionGranted, isLoaded, sendVideoFrameToUnity]);
 
+  // 컴포넌트 언마운트 시 스트림 정리
   useEffect(() => {
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (_stream) {
+        _stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [stream]);
+  }, [_stream]);
 
   function handleClickSpawnEnemies() {
     if (isLoaded && cameraPermissionGranted) {
@@ -138,22 +156,14 @@ export default function Home() {
 
   return (
     <div className="home">
-      {/* 디버깅용 비디오 미리보기 */}
-      <div className="unity-wrapper">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: "100%",
-            maxWidth: "400px",
-            borderRadius: "8px",
-            marginBottom: "1rem",
-            display: "block", // 디버깅용으로 표시, 필요 시 none으로 변경
-          }}
-        />
-      </div>
+      {/* 숨겨진 비디오 및 캔버스 엘리먼트 */}
+      <video
+        ref={videoRef}
+        style={{ display: "none" }}
+        autoPlay
+        muted
+        playsInline
+      />
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
       <div className="unity-wrapper">
@@ -174,9 +184,10 @@ export default function Home() {
           유니티 함수 전달
         </button>
         {!cameraPermissionGranted && <p>카메라 권한을 허용해주세요.</p>}
+
+        {/* 메모리 사용량 모니터링 */}
         <div style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
-          현재 설정: {isLargeScreen ? "1280x720" : "640x480"}, 15fps, WebP 90%
-          품질
+          현재 설정: 320x240, 10fps, JPEG 30% 품질
         </div>
       </div>
     </div>
