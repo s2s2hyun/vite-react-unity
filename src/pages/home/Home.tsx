@@ -1,11 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Unity, useUnityContext } from "react-unity-webgl";
 
 export default function Home() {
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
-  const [_stream, setStream] = useState<MediaStream | null>(null); // 타입 지정
-  const videoRef = useRef<HTMLVideoElement>(null); // 타입 지정
-  const canvasRef = useRef<HTMLCanvasElement>(null); // 타입 지정
+  const [_stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastFrameTimeRef = useRef<number>(0);
+  const frameCountRef = useRef<number>(0);
 
   const { unityProvider, isLoaded, sendMessage } = useUnityContext({
     loaderUrl: "unity/Build/Build.loader.js",
@@ -26,14 +28,18 @@ export default function Home() {
 
   async function requestCameraPermission() {
     try {
+      // 해상도를 대폭 줄임 (메모리 절약)
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720 },
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 15, max: 15 }, // 프레임레이트 제한
+        },
         audio: false,
       });
 
       setStream(mediaStream);
 
-      // 비디오 엘리먼트에 스트림 연결
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         videoRef.current.play();
@@ -48,37 +54,79 @@ export default function Home() {
     }
   }
 
-  // 비디오 프레임을 Unity로 전송
-  function sendVideoFrameToUnity() {
+  // 메모리 최적화된 프레임 전송
+  const sendVideoFrameToUnity = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !isLoaded) return;
+
+    const currentTime = Date.now();
+
+    // 프레임 스킵 (10fps로 제한)
+    if (currentTime - lastFrameTimeRef.current < 100) return;
+    lastFrameTimeRef.current = currentTime;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
-    if (!ctx) return; // null 체크
+    if (!ctx) return;
 
-    // 캔버스 크기를 비디오 크기에 맞춤
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // 캔버스 크기를 더 작게 설정 (메모리 절약)
+    const targetWidth = 320;
+    const targetHeight = 240;
 
-    // 비디오 프레임을 캔버스에 그리기
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
-    // 캔버스 데이터를 base64로 변환
-    const imageData = canvas.toDataURL("image/jpeg", 0.5);
+    // 비디오를 축소하여 그리기
+    ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
-    // Unity로 이미지 데이터 전송
-    sendMessage("CameraController", "ReceiveVideoFrame", imageData);
-  }
+    // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
+    const imageData = canvas.toDataURL("image/jpeg", 0.3);
 
-  // 주기적으로 프레임 전송 (30fps)
-  useEffect(() => {
-    if (cameraPermissionGranted && isLoaded) {
-      const interval = setInterval(sendVideoFrameToUnity, 33); // ~30fps
-      return () => clearInterval(interval);
+    // 프레임 카운터 (디버깅용)
+    frameCountRef.current++;
+    if (frameCountRef.current % 50 === 0) {
+      console.log(
+        `전송된 프레임: ${frameCountRef.current}, 데이터 크기: ${Math.round(
+          imageData.length / 1024
+        )}KB`
+      );
     }
-  }, [cameraPermissionGranted, isLoaded, sendMessage]); // sendMessage 의존성 추가
+
+    try {
+      sendMessage("CameraController", "ReceiveVideoFrame", imageData);
+    } catch (error) {
+      console.error("Unity 메시지 전송 실패:", error);
+    }
+  }, [isLoaded, sendMessage]);
+
+  // 애니메이션 프레임 사용 (setInterval보다 효율적)
+  useEffect(() => {
+    let animationId: number;
+
+    if (cameraPermissionGranted && isLoaded) {
+      const animate = () => {
+        sendVideoFrameToUnity();
+        animationId = requestAnimationFrame(animate);
+      };
+      animationId = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [cameraPermissionGranted, isLoaded, sendVideoFrameToUnity]);
+
+  // 컴포넌트 언마운트 시 스트림 정리
+  useEffect(() => {
+    return () => {
+      if (_stream) {
+        _stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [_stream]);
 
   function handleClickSpawnEnemies() {
     if (isLoaded && cameraPermissionGranted) {
@@ -91,7 +139,7 @@ export default function Home() {
 
   return (
     <div className="home">
-      <h1>Unity WebGL Game with Camera</h1>
+      <h1>Unity WebGL Game with Camera (최적화됨)</h1>
 
       {/* 숨겨진 비디오 및 캔버스 엘리먼트 */}
       <video
@@ -121,6 +169,11 @@ export default function Home() {
           유니티 함수 전달
         </button>
         {!cameraPermissionGranted && <p>카메라 권한을 허용해주세요.</p>}
+
+        {/* 메모리 사용량 모니터링 */}
+        <div style={{ marginTop: "10px", fontSize: "12px", color: "#666" }}>
+          현재 설정: 320x240, 10fps, JPEG 30% 품질
+        </div>
       </div>
     </div>
   );
