@@ -3,7 +3,7 @@ import { Unity, useUnityContext } from "react-unity-webgl";
 
 export default function Home() {
   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null); // 타입 지정
+  const [_stream, setStream] = useState<MediaStream | null>(null); // 타입 지정
   const videoRef = useRef<HTMLVideoElement>(null); // 타입 지정
   const canvasRef = useRef<HTMLCanvasElement>(null); // 타입 지정
 
