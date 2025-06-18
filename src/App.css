@@ -53,6 +53,20 @@
   overflow-y: auto;
 }
 
+@media (max-width: 767px) {
+  .main-content {
+    padding: 0rem;
+    margin: 0rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .unity-wrapper {
+    padding: 0rem;
+    margin: 0rem;
+  }
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -131,12 +145,26 @@
   padding: 2rem;
 }
 
+@media (max-width: 767px) {
+  .home {
+    padding: 0rem;
+    margin: 0rem;
+  }
+}
+
 .unity-wrapper {
   margin: 2rem 0;
   padding: 1rem;
   background-color: #f5f5f5;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 767px) {
+  .unity-wrapper {
+    padding: 0rem;
+    margin: 0rem;
+  }
 }
 
 .unity-container {

@@ -156,8 +156,6 @@ export default function Home() {
 
   return (
     <div className="home">
-      <h1>Unity WebGL Game with Camera (최적화됨)</h1>
-
       {/* 숨겨진 비디오 및 캔버스 엘리먼트 */}
       <video
         ref={videoRef}
