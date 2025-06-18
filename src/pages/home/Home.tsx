@@ -31,9 +31,9 @@ export default function Home() {
       // 해상도를 대폭 줄임 (메모리 절약)
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-          frameRate: { ideal: 20, max: 20 }, // 프레임레이트 제한
+          width: { ideal: 1280 }, // HD 해상도
+          height: { ideal: 720 },
+          frameRate: { ideal: 20, max: 20 },
           facingMode: "environment",
         },
         audio: false,
@@ -62,7 +62,7 @@ export default function Home() {
     const currentTime = Date.now();
 
     // 프레임 스킵 (10fps로 제한)
-    if (currentTime - lastFrameTimeRef.current < 100) return;
+    if (currentTime - lastFrameTimeRef.current < 66 ) return;
     lastFrameTimeRef.current = currentTime;
 
     const video = videoRef.current;
@@ -72,8 +72,8 @@ export default function Home() {
     if (!ctx) return;
 
     // 캔버스 크기를 더 작게 설정 (메모리 절약)
-    const targetWidth = 320;
-    const targetHeight = 240;
+    const targetWidth = 1280; // HD 해상도
+    const targetHeight = 720;
 
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -82,7 +82,7 @@ export default function Home() {
     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
     // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
-    const imageData = canvas.toDataURL("image/jpeg", 1);
+    const imageData = canvas.toDataURL("image/jpeg", 0.8);
 
     // 프레임 카운터 (디버깅용)
     frameCountRef.current++;
