@@ -81,7 +81,7 @@ export default function Home() {
     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
 
     // 압축률을 더 높임 (화질 vs 메모리 트레이드오프)
-    const imageData = canvas.toDataURL("image/jpeg", 0.3);
+    const imageData = canvas.toDataURL("image/jpeg", 1);
 
     // 프레임 카운터 (디버깅용)
     frameCountRef.current++;
