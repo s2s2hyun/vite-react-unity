@@ -33,7 +33,8 @@ export default function Home() {
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
-          frameRate: { ideal: 15, max: 15 }, // 프레임레이트 제한
+          frameRate: { ideal: 20, max: 20 }, // 프레임레이트 제한
+          facingMode: "environment",
         },
         audio: false,
       });
