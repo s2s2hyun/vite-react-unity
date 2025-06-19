@@ -1,6 +1,3 @@
-/unity/Build/*.br
-  Content-Encoding: br
-  Content-Type: application/octet-stream
 
 /test/Build/*.br
   Content-Encoding: br
